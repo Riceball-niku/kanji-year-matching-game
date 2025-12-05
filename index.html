@@ -134,39 +134,56 @@ function numberToKanji(num) {
    Correct hiragana reading
    ============================= */
 function numberToReading(num) {
-  const digits = ["", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう"];
+  // Returns a proper Japanese hiragana reading ending with "ねん"
+  // Handles irregulars: 300/600/800 etc., 3000/8000 etc., and "4" -> "よ" before 年.
+  if (!Number.isFinite(num) || num <= 0) return 'れいねん';
 
-  function read100s(n) {
-    if (n === 0) return "";
-    if (n === 1) return "ひゃく";
-    if (n === 3) return "さんびゃく";
-    if (n === 6) return "ろっぴゃく";
-    if (n === 8) return "はっぴゃく";
-    return digits[n] + "ひゃく";
+  const ones = ['', 'いち','に','さん','よん','ご','ろく','なな','はち','きゅう'];
+  let n = Math.floor(num);
+  let s = '';
+
+  // thousands (1000-9000)
+  const thousands = Math.floor(n / 1000);
+  if (thousands > 0) {
+    if (thousands === 1) s += 'せん';
+    else if (thousands === 3) s += 'さんぜん';
+    else if (thousands === 8) s += 'はっせん';
+    else s += ones[thousands] + 'せん';
+    n = n % 1000;
   }
 
-  function read10s(n) {
-    if (n === 0) return "";
-    if (n === 1) return "じゅう";
-    return digits[n] + "じゅう";
+  // hundreds (100-900)
+  const hundreds = Math.floor(n / 100);
+  if (hundreds > 0) {
+    switch (hundreds) {
+      case 1: s += 'ひゃく'; break;
+      case 2: s += 'にひゃく'; break;
+      case 3: s += 'さんびゃく'; break;
+      case 4: s += 'よんひゃく'; break;
+      case 5: s += 'ごひゃく'; break;
+      case 6: s += 'ろっぴゃく'; break;
+      case 7: s += 'ななひゃく'; break;
+      case 8: s += 'はっぴゃく'; break;
+      case 9: s += 'きゅうひゃく'; break;
+    }
+    n = n % 100;
   }
 
-  // Special rule: "4" becomes "よ" before 年
-  function readOnesBeforeNen(n) {
-    if (n === 4) return "よ";
-    return digits[n];
+  // tens (10-90)
+  const tens = Math.floor(n / 10);
+  if (tens > 0) {
+    if (tens === 1) s += 'じゅう';
+    else s += ones[tens] + 'じゅう';
+    n = n % 10;
   }
 
-  const hundreds = Math.floor(num / 100);
-  const tens = Math.floor((num % 100) / 10);
-  const ones = num % 10;
+  // ones (1-9) — special case: 4 before 年 becomes "よ"
+  if (n > 0) {
+    if (n === 4) s += 'よ';
+    else s += ones[n];
+  }
 
-  const h = read100s(hundreds);
-  const t = read10s(tens);
-  const o = readOnesBeforeNen(ones);
-
-  // Combine with spaces for TTS clarity
-  return (h + " " + t + " " + o + " ねん").replace(/\s+/g, " ").trim();
+  return s + 'ねん';
 }
 
 /* =============================
@@ -178,7 +195,13 @@ function speakHiragana(str) {
 
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(str);
+// If contains any hiragana/katakana/kanji → Japanese voice, else English
+if (/[ぁ-んァ-ン一-龥]/.test(str)) {
   u.lang = 'ja-JP';
+} else {
+  u.lang = 'en-US';
+}
+
 
   setTimeout(() => window.speechSynthesis.speak(u), 80);
 }
@@ -298,7 +321,7 @@ function onChoose(card, chosenNum) {
    End of game
    ============================= */
 function finishGame() {
-  feedbackEl.textContent = `🎉 Finished! Score: ${score} / ${TOTAL_QUESTIONS}`;
+  speakHiragana(`Finished. Your score is ${score}.`);
   restartBtn.classList.remove('hidden');
   backBtn.classList.remove('hidden');
 
