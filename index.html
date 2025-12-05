@@ -1,236 +1,40 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kanji Year Quiz</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .karuta-card {
-      font-family: 'Noto Serif JP', serif;
-      cursor: pointer;
-      transition: all 0.1s ease-in-out;
-    }
-    .karuta-card:hover {
-      transform: scale(1.05);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    }
-    .correct { background-color: #10B981 !important; }
-    .incorrect { background-color: #F87171 !important; }
-  </style>
-</head>
-
-<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center p-4">
-
-<header class="text-center mb-6">
-  <h1 class="text-4xl font-bold text-red-600 mb-2">Kanji Year Quiz</h1>
-</header>
-
-<!-- MAIN MENU -->
-<div id="main-menu" class="flex flex-col items-center gap-4">
-  <button id="enableAudioBtn" class="px-4 py-2 bg-yellow-500 rounded hover:bg-yellow-600">Enable Audio 🔊</button>
-  <button id="beginnerBtn" class="px-4 py-2 bg-red-600 rounded hover:bg-red-700">Beginner (20–100)</button>
-  <button id="advancedBtn" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Advanced (101–2000)</button>
-</div>
-
-<!-- GAME -->
-<div id="game-container" class="hidden flex flex-col items-center">
-  <div class="mb-2 text-xl">Score: <span id="score">0</span> / 15</div>
-  <div class="mb-2 text-lg">Question <span id="qnum">1</span> / 15</div>
-
-  <div id="question-container" class="mb-6 text-center">
-    <p class="text-gray-300 mb-2">Find the Kanji for:</p>
-    <div id="target-number" class="text-6xl font-bold text-yellow-400 mb-4">---</div>
-    <div id="choices" class="grid grid-cols-2 gap-4 max-w-md mx-auto"></div>
-  </div>
-
-  <div id="feedback" class="text-xl mb-4 h-8 text-center"></div>
-
-  <div class="flex gap-4">
-    <button id="restartBtn" class="px-4 py-2 bg-green-600 rounded hover:bg-green-700 hidden">Restart</button>
-    <button id="backBtn" class="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 hidden">Back to Main Menu</button>
-  </div>
-</div>
-
-<script>
-/* ----------------------------
-   GAME STATE
------------------------------*/
-let level = null;
-let score = 0;
-let questionIndex = 0;
-const totalQuestions = 15;
-let currentNumber = 0;
-let audioEnabled = false;
-
-/* ----------------------------
-   BUTTON LISTENERS
------------------------------*/
-document.getElementById('enableAudioBtn').onclick = () => {
-  audioEnabled = true;
-  enableAudioBtn.textContent = "Audio Enabled ✅";
-  enableAudioBtn.disabled = true;
-};
-
-document.getElementById('beginnerBtn').onclick = () => startGame('beginner');
-document.getElementById('advancedBtn').onclick = () => startGame('advanced');
-document.getElementById('restartBtn').onclick = () => startGame(level);
-
-document.getElementById('backBtn').onclick = () => {
-  document.getElementById('game-container').classList.add('hidden');
-  document.getElementById('main-menu').classList.remove('hidden');
-};
-
-/* ----------------------------
-   KANJI NUMBER (unchanged)
------------------------------*/
-const digits = ["", "一","二","三","四","五","六","七","八","九"];
-
-function numberToKanji(num) {
-  let result = "";
-  const thou = Math.floor(num/1000);
-  const hund = Math.floor((num%1000)/100);
-  const tens = Math.floor((num%100)/10);
-  const unit = num%10;
-
-  if(thou>0) result += (thou===1?"千":digits[thou]+"千");
-  if(hund>0) result += (hund===1?"百":digits[hund]+"百");
-  if(tens>0) result += (tens===1?"十":digits[tens]+"十");
-  if(unit>0) result += digits[unit];
-
-  return result;
-}
-
-/* ----------------------------
-   ★ FIXED JAPANESE READING ★
------------------------------*/
 function numberToJapaneseReading(num) {
   const units = ["", "いち","に","さん","よん","ご","ろく","なな","はち","きゅう"];
   const tens = ["", "じゅう","にじゅう","さんじゅう","よんじゅう","ごじゅう","ろくじゅう","ななじゅう","はちじゅう","きゅうじゅう"];
 
   let result = "";
 
+  // Thousands (1000–9999)
   if (num >= 1000) {
     const t = Math.floor(num / 1000);
-    result += (t === 1 ? "せん" : units[t] + "せん");
+    if (t === 1) result += "せん";
+    else if (t === 3) result += "さんぜん";
+    else result += units[t] + "せん";
     num %= 1000;
   }
+
+  // Hundreds (100–999)
   if (num >= 100) {
     const h = Math.floor(num / 100);
-    result += (h === 1 ? "ひゃく" : units[h] + "ひゃく");
+    if (h === 1) result += "ひゃく";
+    else if (h === 3) result += "さんびゃく";
+    else if (h === 6) result += "ろっぴゃく";
+    else if (h === 8) result += "はっぴゃく";  // FIXED
+    else result += units[h] + "ひゃく";
     num %= 100;
   }
+
+  // Tens (10–99)
   if (num >= 10) {
     const te = Math.floor(num / 10);
     result += tens[te];
     num %= 10;
   }
+
+  // Units (1–9)
   if (num > 0) {
     result += units[num];
   }
 
   return result + "ねん";
 }
-
-/* ----------------------------
-   SPEAK FIXED READING
------------------------------*/
-function speakNumber(num){
-  if (!audioEnabled) return;
-  if ('speechSynthesis' in window){
-    const reading = numberToJapaneseReading(num);
-    const utter = new SpeechSynthesisUtterance(reading);
-    utter.lang = 'ja-JP';
-    speechSynthesis.speak(utter);
-  }
-}
-
-/* ----------------------------
-   GAME FLOW
------------------------------*/
-function startGame(selectedLevel){
-  level = selectedLevel;
-  score = 0;
-  questionIndex = 0;
-
-  document.getElementById('main-menu').classList.add('hidden');
-  document.getElementById('game-container').classList.remove('hidden');
-
-  document.getElementById('score').textContent = score;
-  document.getElementById('qnum').textContent = 1;
-
-  document.getElementById('restartBtn').classList.add('hidden');
-  document.getElementById('backBtn').classList.add('hidden');
-
-  nextQuestion();
-}
-
-function nextQuestion(){
-  if(questionIndex >= totalQuestions){
-    endGame();
-    return;
-  }
-
-  const range = level==='beginner'? [20,100] : [101,2000];
-  currentNumber = Math.floor(Math.random()*(range[1]-range[0]+1)) + range[0];
-
-  document.getElementById('target-number').textContent = currentNumber + "年";
-  document.getElementById('qnum').textContent = questionIndex + 1;
-
-  generateChoices();
-  speakNumber(currentNumber);
-
-  questionIndex++;
-}
-
-function generateChoices(){
-  const correctKanji = numberToKanji(currentNumber);
-  const choices = new Set([correctKanji]);
-
-  const range = level==='beginner'? [20,100] : [101,2000];
-
-  while(choices.size < 4){
-    const num = Math.floor(Math.random()*(range[1]-range[0]+1)) + range[0];
-    choices.add(numberToKanji(num));
-  }
-
-  const shuffled = Array.from(choices).sort(()=>Math.random()-0.5);
-  const container = document.getElementById('choices');
-  container.innerHTML = "";
-
-  shuffled.forEach(k=>{
-    const card = document.createElement('div');
-    card.textContent = k;
-    card.className = "karuta-card bg-gray-700 p-4 rounded text-2xl font-bold hover:bg-gray-600";
-    card.onclick = ()=>checkAnswer(card, k===correctKanji);
-    container.appendChild(card);
-  });
-}
-
-function checkAnswer(card, correct){
-  if(correct){
-    score++;
-    document.getElementById('score').textContent = score;
-
-    card.classList.add('correct');
-    document.getElementById('feedback').textContent = "✅ Correct!";
-  } else {
-    card.classList.add('incorrect');
-    document.getElementById('feedback').textContent = "❌ Incorrect!";
-  }
-
-  setTimeout(()=>{
-    document.getElementById('feedback').textContent = "";
-    nextQuestion();    // ★ DO NOT END GAME — continue
-  },700);
-}
-
-function endGame(){
-  document.getElementById('feedback').textContent = `🎉 Finished! Score: ${score} / ${totalQuestions}`;
-  document.getElementById('restartBtn').classList.remove('hidden');
-  document.getElementById('backBtn').classList.remove('hidden');
-}
-</script>
-
-</body>
-</html>
