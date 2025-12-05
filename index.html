@@ -1,292 +1,187 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Kanji 年 Karuta — Year Numerals</title>
-
-  <!-- Tailwind CDN -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kanji Year Quiz</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: "#DC2626",
-            secondary: "#FCD34D",
-            "dark-bg": "#1F2937",
-          },
-          fontFamily: {
-            sans: ["Inter", "Noto Sans CJK JP", "sans-serif"],
-            serif: ["Noto Serif JP", "serif"],
-          },
-        },
-      },
-    };
-  </script>
-
   <style>
     .karuta-card {
-      font-family: "Noto Serif JP", serif;
+      font-family: 'Noto Serif JP', serif;
       cursor: pointer;
-      transition: transform .12s ease, box-shadow .12s ease;
-      backface-visibility: hidden;
+      transition: all 0.1s ease-in-out;
     }
-    .karuta-card:hover { transform: scale(1.03); }
-    .correct { animation: pulse-green .5s 1; background-color:#10B981!important; }
-    .incorrect { animation: shake .5s 1; background-color:#F87171!important; }
-    @keyframes pulse-green { 0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)} }
-    @keyframes shake { 0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)} }
+    .karuta-card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .correct { background-color: #10B981 !important; }
+    .incorrect { background-color: #F87171 !important; }
   </style>
 </head>
-<body class="bg-dark-bg min-h-screen text-white flex items-center justify-center p-6">
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center p-4">
 
-  <main class="w-full max-w-4xl bg-gray-800 p-6 sm:p-10 rounded-xl shadow-2xl">
-    <header class="text-center mb-6">
-      <h1 class="text-4xl font-extrabold text-primary">Kanji 年 Karuta</h1>
-      <p class="text-gray-400 mt-1">Match the Arabic year to the Kanji numerals</p>
-      <div class="mt-3 flex items-center justify-center gap-3">
-        <button id="enable-audio" class="px-4 py-2 bg-blue-600 rounded-md text-white">Enable Audio</button>
-        <button id="restart-btn" class="px-4 py-2 bg-slate-600 rounded-md text-white">Restart</button>
-      </div>
-    </header>
+  <header class="text-center mb-6">
+    <h1 class="text-4xl font-bold text-red-600 mb-2">Kanji Year Quiz</h1>
+    <p class="text-gray-300">Select the correct Kanji for the number of years</p>
+  </header>
 
-    <!-- Score / Timer / Mode -->
-    <div class="flex flex-col sm:flex-row justify-between items-center bg-gray-700 p-4 rounded-lg mb-6">
-      <div class="text-left">
-        <p class="text-sm text-gray-300">Score: <span id="score" class="font-mono text-2xl">0</span></p>
-      </div>
-      <div class="text-center">
-        <p class="text-sm text-gray-300">Time: <span id="timer" class="font-mono text-2xl">1:00</span></p>
-      </div>
-      <div class="text-right">
-        <p class="text-sm text-gray-300">Highscore (<span id="mode-label">Beginner</span>): <span id="highscore" class="font-mono text-2xl">0</span></p>
-      </div>
+  <!-- Main Menu -->
+  <div id="main-menu" class="flex flex-col items-center gap-4">
+    <button id="enableAudioBtn" class="px-4 py-2 bg-yellow-500 rounded hover:bg-yellow-600">Enable Audio 🔊</button>
+    <button id="beginnerBtn" class="px-4 py-2 bg-red-600 rounded hover:bg-red-700">Beginner (20–100)</button>
+    <button id="advancedBtn" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">Advanced (101–2000)</button>
+  </div>
+
+  <!-- Game Container -->
+  <div id="game-container" class="hidden flex flex-col items-center">
+    <div class="mb-4 text-xl">
+      Score: <span id="score">0</span> / 15
     </div>
 
-    <!-- Mode Buttons -->
-    <div class="flex justify-center gap-3 mb-6">
-      <button id="mode-beginner" class="px-4 py-2 bg-primary rounded-md font-bold">Beginner (1–100)</button>
-      <button id="mode-challenger" class="px-4 py-2 bg-slate-600 rounded-md font-bold">Challenger (101–9000)</button>
+    <div id="question-container" class="mb-6 text-center">
+      <p class="text-gray-300 mb-2">Find the Kanji for:</p>
+      <div id="target-number" class="text-6xl font-bold text-yellow-400 mb-4">---</div>
+      <div id="choices" class="grid grid-cols-2 gap-4 max-w-md mx-auto"></div>
     </div>
 
-    <!-- Target -->
-    <section class="bg-gray-700 p-6 rounded-xl text-center mb-6">
-      <p class="text-lg text-gray-300 mb-2">Find the Kanji for:</p>
-      <div id="target" class="text-7xl font-extrabold text-secondary">-- 年</div>
-    </section>
+    <div id="feedback" class="text-xl mb-4 h-8 text-center"></div>
 
-    <!-- Choices -->
-    <div id="choices" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
-
-    <div class="mt-6 text-center">
-      <p id="message" class="text-gray-300"></p>
+    <div class="flex gap-4">
+      <button id="restartBtn" class="px-4 py-2 bg-green-600 rounded hover:bg-green-700 hidden">Restart</button>
+      <button id="backBtn" class="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 hidden">Back to Main Menu</button>
     </div>
+  </div>
 
-    <!-- Game Over Modal (simple) -->
-    <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-60 items-center justify-center p-4">
-      <div class="bg-gray-800 p-6 rounded-lg text-center max-w-sm mx-auto border-2 border-primary">
-        <h2 class="text-2xl font-bold text-primary" id="modal-title">Game Over</h2>
-        <p class="mt-3 text-gray-300">Score: <span id="final-score">0</span></p>
-        <div class="mt-4">
-          <button id="play-again" class="px-4 py-2 bg-primary rounded-md">Play Again</button>
-        </div>
-      </div>
-    </div>
-  </main>
+  <script>
+    // --- Game State ---
+    let level = null;
+    let score = 0;
+    let questionIndex = 0;
+    const totalQuestions = 15;
+    let currentNumber = 0;
+    let audioEnabled = false;
 
-<script>
-/* --------- State --------- */
-const state = {
-  mode: 'beginner', // 'beginner' or 'challenger'
-  score: 0,
-  targetNumber: 0,
-  targetKanji: '',
-  choices: [],
-  isPlaying: false,
-  timer: 60,
-  timerInterval: null,
-  audioEnabled: false
-};
+    // --- Event Listeners ---
+    const enableAudioBtn = document.getElementById('enableAudioBtn');
+    enableAudioBtn.onclick = () => {
+      audioEnabled = true;
+      enableAudioBtn.textContent = "Audio Enabled ✅";
+      enableAudioBtn.disabled = true;
+    };
 
-/* --------- Utility: Number -> Kanji --------- */
-function numberToKanji(num) {
-  if (num <= 0 || num > 9999) return "エラー";
-  const d = ["","一","二","三","四","五","六","七","八","九"];
-  let s = '';
-  const thou = Math.floor(num / 1000), hund = Math.floor((num % 1000) / 100);
-  const tens = Math.floor((num % 100) / 10), unit = num % 10;
-  if (thou>0) s += (thou===1 ? '千' : d[thou]+'千');
-  if (hund>0) s += (hund===1 ? '百' : d[hund]+'百');
-  if (tens>0) s += (tens===1 ? '十' : d[tens]+'十');
-  if (unit>0) s += d[unit];
-  if (s==='') return d[num] || '零';
-  return s;
-}
+    document.getElementById('beginnerBtn').onclick = () => startGame('beginner');
+    document.getElementById('advancedBtn').onclick = () => startGame('advanced');
+    document.getElementById('restartBtn').onclick = () => startGame(level);
+    document.getElementById('backBtn').onclick = () => {
+      document.getElementById('game-container').classList.add('hidden');
+      document.getElementById('main-menu').classList.remove('hidden');
+      resetMenu();
+    };
 
-/* --------- Highscore (localStorage) --------- */
-function loadHighscore(mode){ return Number(localStorage.getItem('karuta_high_'+mode) || 0); }
-function saveHighscore(mode, score){ const cur = loadHighscore(mode); if (score>cur) { localStorage.setItem('karuta_high_'+mode, score); return true } return false; }
+    function resetMenu(){
+      document.getElementById('score').textContent = 0;
+      document.getElementById('feedback').textContent = '';
+      document.getElementById('target-number').textContent = '---';
+      document.getElementById('choices').innerHTML = '';
+      document.getElementById('restartBtn').classList.add('hidden');
+      document.getElementById('backBtn').classList.add('hidden');
+    }
 
-/* --------- UI Elements --------- */
-const el = {
-  score: document.getElementById('score'),
-  timer: document.getElementById('timer'),
-  target: document.getElementById('target'),
-  choices: document.getElementById('choices'),
-  message: document.getElementById('message'),
-  modeLabel: document.getElementById('mode-label'),
-  highscore: document.getElementById('highscore'),
-  enableAudioBtn: document.getElementById('enable-audio'),
-  restartBtn: document.getElementById('restart-btn'),
-  modal: document.getElementById('modal'),
-  finalScore: document.getElementById('final-score'),
-  playAgain: document.getElementById('play-again'),
-  modalTitle: document.getElementById('modal-title')
-};
+    // --- Kanji Conversion ---
+    const digits = ["", "一","二","三","四","五","六","七","八","九"];
+    function numberToKanji(num) {
+      if(num <= 0) return "エラー";
+      let result = "";
+      const thou = Math.floor(num/1000);
+      const hund = Math.floor((num%1000)/100);
+      const tens = Math.floor((num%100)/10);
+      const unit = num%10;
+      if(thou>0) result += thou===1?"千":digits[thou]+"千";
+      if(hund>0) result += hund===1?"百":digits[hund]+"百";
+      if(tens>0) result += tens===1?"十":digits[tens]+"十";
+      if(unit>0) result += digits[unit];
+      return result;
+    }
 
-/* --------- Timer --------- */
-function formatTime(sec){ const m=Math.floor(sec/60), s=sec%60; return `${m}:${String(s).padStart(2,'0')}`; }
-function startTimer(){
-  clearInterval(state.timerInterval);
-  state.timer = 60;
-  el.timer.textContent = formatTime(state.timer);
-  state.timerInterval = setInterval(()=>{
-    state.timer--;
-    el.timer.textContent = formatTime(state.timer);
-    if (state.timer<=0){ clearInterval(state.timerInterval); endGame(true); }
-  },1000);
-}
+    // --- Game Functions ---
+    function startGame(selectedLevel){
+      level = selectedLevel;
+      score = 0;
+      questionIndex = 0;
+      document.getElementById('score').textContent = score;
+      document.getElementById('main-menu').classList.add('hidden');
+      document.getElementById('game-container').classList.remove('hidden');
+      document.getElementById('restartBtn').classList.add('hidden');
+      document.getElementById('backBtn').classList.add('hidden');
+      nextQuestion();
+    }
 
-/* --------- TTS (Web Speech API) --------- */
-function ensureVoices(){ if (typeof speechSynthesis === 'undefined') return; speechSynthesis.getVoices(); }
-window.speechSynthesis?.onvoiceschanged = ensureVoices;
+    function nextQuestion(){
+      if(questionIndex >= totalQuestions){
+        endGame();
+        return;
+      }
+      const range = level==='beginner'? [20,100] : [101,2000];
+      currentNumber = Math.floor(Math.random()*(range[1]-range[0]+1)) + range[0];
+      document.getElementById('target-number').textContent = currentNumber;
+      generateChoices();
+      if(audioEnabled) speakNumber(currentNumber);
+      questionIndex++;
+    }
 
-function speakKanjiNumber(number){
-  if (!state.audioEnabled) return;
-  const kanjiText = numberToKanji(number) + "年";
-  const u = new SpeechSynthesisUtterance(kanjiText);
-  u.lang = "ja-JP";
-  // Cancel any existing speech and speak after a tiny delay
-  window.speechSynthesis.cancel();
-  setTimeout(()=> window.speechSynthesis.speak(u), 120);
-}
+    function generateChoices(){
+      const correctKanji = numberToKanji(currentNumber);
+      const choices = new Set([correctKanji]);
+      const range = level==='beginner'? [20,100] : [101,2000];
+      while(choices.size<4){
+        const num = Math.floor(Math.random()*(range[1]-range[0]+1)) + range[0];
+        choices.add(numberToKanji(num));
+      }
+      const shuffled = Array.from(choices).sort(()=>Math.random()-0.5);
+      const container = document.getElementById('choices');
+      container.innerHTML = "";
+      shuffled.forEach(k=>{
+        const card = document.createElement('div');
+        card.textContent = k;
+        card.className = "karuta-card bg-gray-700 p-4 rounded text-2xl font-bold hover:bg-gray-600";
+        card.onclick = ()=>checkAnswer(card, k===correctKanji);
+        container.appendChild(card);
+      });
+    }
 
-/* --------- Game logic --------- */
-function getRange(mode){ return mode==='beginner' ? {min:1,max:100} : {min:101,max:9000}; }
-function randBetween(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+    function checkAnswer(card, correct){
+      if(correct){
+        card.classList.add('correct');
+        score++;
+        document.getElementById('score').textContent = score;
+        document.getElementById('feedback').textContent = "✅ Correct!";
+        setTimeout(()=>{ 
+          card.classList.remove('correct'); 
+          document.getElementById('feedback').textContent=''; 
+          nextQuestion(); 
+        },700);
+      } else{
+        card.classList.add('incorrect');
+        document.getElementById('feedback').textContent = "❌ Incorrect. Game Over!";
+        setTimeout(endGame,1000);
+      }
+    }
 
-function generateRound(){
-  if (!state.isPlaying) return;
-  const r = getRange(state.mode);
-  const correct = randBetween(r.min, r.max);
-  state.targetNumber = correct;
-  state.targetKanji = numberToKanji(correct);
-  // generate unique false kanji (3)
-  const set = new Set();
-  while (set.size < 3) {
-    const n = randBetween(r.min, r.max);
-    const k = numberToKanji(n);
-    if (k !== state.targetKanji) set.add(k);
-  }
-  state.choices = [state.targetKanji, ...Array.from(set)];
-  // shuffle
-  for (let i=state.choices.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [state.choices[i], state.choices[j]] = [state.choices[j], state.choices[i]];
-  }
-  renderRound();
-  if (state.audioEnabled) speakKanjiNumber(correct);
-}
+    function endGame(){
+      document.getElementById('feedback').textContent = `🎉 Finished! Score: ${score} / ${totalQuestions}`;
+      document.getElementById('restartBtn').classList.remove('hidden');
+      document.getElementById('backBtn').classList.remove('hidden');
+    }
 
-function renderRound(){
-  el.target.textContent = state.targetNumber + "年";
-  el.choices.innerHTML = '';
-  state.choices.forEach(k => {
-    const d = document.createElement('div');
-    d.className = "karuta-card bg-gray-700 hover:bg-gray-600 text-secondary p-4 rounded-xl shadow-lg border-b-4 border-secondary flex items-center justify-center font-bold text-3xl text-center";
-    d.textContent = k;
-    d.onclick = () => onChoose(d, k);
-    el.choices.appendChild(d);
-  });
-}
-
-/* --------- Choice handling --------- */
-function onChoose(cardEl, kanji){
-  if (!state.isPlaying) return;
-  state.isPlaying = false; // temporary block
-  if (kanji === state.targetKanji){
-    cardEl.classList.add('correct');
-    el.message.textContent = '✅ Correct! +1';
-    state.score++;
-    el.score.textContent = state.score;
-    setTimeout(()=>{
-      cardEl.classList.remove('correct');
-      state.isPlaying = true;
-      generateRound();
-    },700);
-  } else {
-    cardEl.classList.add('incorrect');
-    el.message.textContent = '❌ Incorrect — Game Over';
-    // highlight correct
-    Array.from(el.choices.children).forEach(c => { if (c.textContent === state.targetKanji) c.style.border = '4px solid #10B981'; });
-    setTimeout(()=> endGame(false), 1000);
-  }
-}
-
-/* --------- Start / End / Mode --------- */
-function startGame(){
-  state.score = 0;
-  el.score.textContent = 0;
-  el.message.textContent = state.audioEnabled ? 'Match the cards!' : 'Click "Enable Audio" to hear numbers';
-  state.isPlaying = true;
-  el.modeLabel.textContent = state.mode.charAt(0).toUpperCase()+state.mode.slice(1);
-  el.highscore.textContent = loadHighscore(state.mode);
-  startTimer();
-  generateRound();
-}
-
-function endGame(timedOut){
-  clearInterval(state.timerInterval);
-  state.isPlaying = false;
-  saveHighscore(state.mode, state.score);
-  el.highscore.textContent = loadHighscore(state.mode);
-  // show modal
-  el.modalTitle.textContent = timedOut ? "Time's Up!" : "Game Over!";
-  el.finalScore.textContent = state.score;
-  el.modal.classList.remove('hidden');
-}
-
-/* --------- Controls & Events --------- */
-document.getElementById('mode-beginner').addEventListener('click', ()=>{
-  state.mode='beginner';
-  startGame();
-});
-document.getElementById('mode-challenger').addEventListener('click', ()=>{
-  state.mode='challenger';
-  startGame();
-});
-el.restartBtn.addEventListener('click', ()=> startGame());
-el.playAgain.addEventListener('click', ()=> { el.modal.classList.add('hidden'); startGame(); });
-
-/* Enable audio button (user must interact to allow TTS) */
-el.enableAudioBtn.addEventListener('click', ()=>{
-  state.audioEnabled = true;
-  ensureVoices();
-  el.enableAudioBtn.textContent = 'Audio Enabled ✓';
-  el.enableAudioBtn.classList.replace('bg-blue-600','bg-green-600');
-  // Trigger a tiny test speak to ensure permissions are active:
-  speakKanjiNumber(1);
-  // If game already running, speak current target
-  if (state.isPlaying && state.targetNumber) speakKanjiNumber(state.targetNumber);
-});
-
-/* Start the game automatically when page loads */
-window.addEventListener('load', ()=>{
-  // set highscore label
-  el.highscore.textContent = loadHighscore(state.mode);
-  startGame();
-});
-</script>
+    // --- SpeechSynthesis ---
+    function speakNumber(num){
+      if('speechSynthesis' in window){
+        const utter = new SpeechSynthesisUtterance(`${num}年`);
+        utter.lang = 'ja-JP';
+        speechSynthesis.speak(utter);
+      }
+    }
+  </script>
 </body>
 </html>
