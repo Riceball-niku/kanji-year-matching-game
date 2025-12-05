@@ -133,49 +133,40 @@ function numberToKanji(num) {
 /* =============================
    Correct hiragana reading
    ============================= */
-function numberToHiragana(num) {
-  if (num <= 0) return 'れいねん';
+function numberToReading(num) {
+  const digits = ["", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう"];
 
-  const ones = ['', 'いち','に','さん','よん','ご','ろく','なな','はち','きゅう'];
-  let s = '';
-
-  // thousands
-  const thousands = Math.floor(num / 1000);
-  if (thousands > 0) {
-    if (thousands === 1) s += 'せん';
-    else if (thousands === 3) s += 'さんぜん';
-    else if (thousands === 8) s += 'はっせん';
-    else s += ones[thousands] + 'せん';
+  function read100s(n) {
+    if (n === 0) return "";
+    if (n === 1) return "ひゃく";
+    if (n === 3) return "さんびゃく";
+    if (n === 6) return "ろっぴゃく";
+    if (n === 8) return "はっぴゃく";
+    return digits[n] + "ひゃく";
   }
 
-  // hundreds
-  const hundreds = Math.floor((num % 1000) / 100);
-  if (hundreds > 0) {
-    switch (hundreds) {
-      case 1: s += 'ひゃく'; break;
-      case 2: s += 'にひゃく'; break;
-      case 3: s += 'さんびゃく'; break;
-      case 4: s += 'よんひゃく'; break;
-      case 5: s += 'ごひゃく'; break;
-      case 6: s += 'ろっぴゃく'; break;
-      case 7: s += 'ななひゃく'; break;
-      case 8: s += 'はっぴゃく'; break;
-      case 9: s += 'きゅうひゃく'; break;
-    }
+  function read10s(n) {
+    if (n === 0) return "";
+    if (n === 1) return "じゅう";
+    return digits[n] + "じゅう";
   }
 
-  // tens
+  // Special rule: "4" becomes "よ" before 年
+  function readOnesBeforeNen(n) {
+    if (n === 4) return "よ";
+    return digits[n];
+  }
+
+  const hundreds = Math.floor(num / 100);
   const tens = Math.floor((num % 100) / 10);
-  if (tens > 0) {
-    if (tens === 1) s += 'じゅう';
-    else s += ones[tens] + 'じゅう';
-  }
+  const ones = num % 10;
 
-  // ones
-  const unit = num % 10;
-  if (unit > 0) s += ones[unit];
+  const h = read100s(hundreds);
+  const t = read10s(tens);
+  const o = readOnesBeforeNen(ones);
 
-  return s + 'ねん';
+  // Combine with spaces for TTS clarity
+  return (h + " " + t + " " + o + " ねん").replace(/\s+/g, " ").trim();
 }
 
 /* =============================
@@ -312,7 +303,7 @@ function finishGame() {
   backBtn.classList.remove('hidden');
 
   if (audioEnabled) {
-    speakHiragana(`おわり。せいせきは ${score} てん です。`);
+    speakHiragana(`Your score is ${score}.`);
   }
 }
 
