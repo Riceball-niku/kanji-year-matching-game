@@ -94,43 +94,52 @@ function numberToKanji(num) {
 function numberToReading(num) {
   if (num <= 0 || num > 9999) return "れいねん";
 
-  const ones = ["", "いち","に","さん","よん","ご","ろく","なな","はち","きゅう"];
+  const digits = ["", "いち","に","さん","よ","ご","ろく","なな","はち","きゅう"];
+  let reading = "";
 
-  let s = "";
-
-  // Thousands
-  const t = Math.floor(num / 1000);
-  switch(t){
-    case 0: break;
-    case 1: s += "せん"; break;
-    case 3: s += "さんぜん"; break;
-    case 8: s += "はっせん"; break;
-    default: s += ones[t] + "せん"; break;
+  // Thousands (1000–9000)
+  const thou = Math.floor(num / 1000);
+  if (thou > 0) {
+    switch(thou) {
+      case 1: reading += "せん"; break;
+      case 3: reading += "さんぜん"; break;
+      case 8: reading += "はっせん"; break;
+      default: reading += digits[thou] + "せん"; break;
+    }
   }
 
-  // Hundreds
-  const h = Math.floor((num % 1000)/100);
-  switch(h){
-    case 0: break;
-    case 1: s += "ひゃく"; break;
-    case 3: s += "さんびゃく"; break;
-    case 6: s += "ろっぴゃく"; break;
-    case 8: s += "はっぴゃく"; break;
-    default: s += ones[h]+"ひゃく"; break;
+  // Hundreds (100–900)
+  const hund = Math.floor((num % 1000) / 100);
+  if (hund > 0) {
+    switch(hund) {
+      case 1: reading += "ひゃく"; break;
+      case 2: reading += "にひゃく"; break;
+      case 3: reading += "さんびゃく"; break;
+      case 4: reading += "よんひゃく"; break;
+      case 5: reading += "ごひゃく"; break;
+      case 6: reading += "ろっぴゃく"; break;
+      case 7: reading += "ななひゃく"; break;
+      case 8: reading += "はっぴゃく"; break;
+      case 9: reading += "きゅうひゃく"; break;
+    }
   }
 
-  // Tens
-  const te = Math.floor((num % 100)/10);
-  if(te>0){
-    if(te===1) s+="じゅう";
-    else s+=ones[te]+"じゅう";
+  // Tens (10–90)
+  const tens = Math.floor((num % 100) / 10);
+  if (tens > 0) {
+    if (tens === 1) reading += "じゅう";
+    else reading += digits[tens] + "じゅう";
   }
 
-  // Ones, special: 4 → よ before 年
-  const o = num%10;
-  if(o>0) s += (o===4?"よ":ones[o]);
+  // Ones (1–9)
+  const ones = num % 10;
+  if (ones > 0) {
+    // Special rule: 4 before 年 becomes "よ"
+    if (ones === 4) reading += "よ";
+    else reading += digits[ones];
+  }
 
-  return s + "ねん";
+  return reading + "ねん";
 }
 
 
