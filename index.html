@@ -95,38 +95,40 @@ function numberToReading(num) {
   if (num <= 0 || num > 9999) return "れいねん";
 
   const ones = ["", "いち","に","さん","よん","ご","ろく","なな","はち","きゅう"];
-  
+
   let s = "";
 
   // Thousands
   const t = Math.floor(num / 1000);
-  if (t > 0) {
-    if (t === 1) s += "せん";
-    else if (t === 3) s += "さんぜん";
-    else if (t === 8) s += "はっせん";
-    else s += ones[t] + "せん";
+  switch(t){
+    case 0: break;
+    case 1: s += "せん"; break;
+    case 3: s += "さんぜん"; break;
+    case 8: s += "はっせん"; break;
+    default: s += ones[t] + "せん"; break;
   }
 
   // Hundreds
-  const h = Math.floor((num % 1000) / 100);
-  if (h > 0) {
-    if (h === 1) s += "ひゃく";
-    else if (h === 3) s += "さんびゃく";
-    else if (h === 6) s += "ろっぴゃく";
-    else if (h === 8) s += "はっぴゃく";
-    else s += ones[h] + "ひゃく";
+  const h = Math.floor((num % 1000)/100);
+  switch(h){
+    case 0: break;
+    case 1: s += "ひゃく"; break;
+    case 3: s += "さんびゃく"; break;
+    case 6: s += "ろっぴゃく"; break;
+    case 8: s += "はっぴゃく"; break;
+    default: s += ones[h]+"ひゃく"; break;
   }
 
   // Tens
-  const te = Math.floor((num % 100) / 10);
-  if (te > 0) {
-    if (te === 1) s += "じゅう";
-    else s += ones[te] + "じゅう";
+  const te = Math.floor((num % 100)/10);
+  if(te>0){
+    if(te===1) s+="じゅう";
+    else s+=ones[te]+"じゅう";
   }
 
-  // Ones, special rule: 4 → よ before 年
-  const o = num % 10;
-  if (o > 0) s += (o === 4 ? "よ" : ones[o]);
+  // Ones, special: 4 → よ before 年
+  const o = num%10;
+  if(o>0) s += (o===4?"よ":ones[o]);
 
   return s + "ねん";
 }
