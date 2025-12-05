@@ -94,60 +94,43 @@ function numberToKanji(num) {
 function numberToReading(num) {
   if (num <= 0 || num > 9999) return "れいねん";
 
-  const ones = ["", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう"];
-  const tens = ["", "じゅう", "にじゅう", "さんじゅう", "よんじゅう", "ごじゅう", "ろくじゅう", "ななじゅう", "はちじゅう", "きゅうじゅう"];
-
-  // Hundreds special readings
-  const hundredsMap = {
-    1: "ひゃく",
-    2: "にひゃく",
-    3: "さんびゃく",
-    4: "よんひゃく",
-    5: "ごひゃく",
-    6: "ろっぴゃく",
-    7: "ななひゃく",
-    8: "はっぴゃく",
-    9: "きゅうひゃく"
-  };
-
-  // Thousands special readings
-  const thousandsMap = {
-    1: "せん",
-    2: "にせん",
-    3: "さんぜん",
-    4: "よんせん",
-    5: "ごせん",
-    6: "ろくせん",
-    7: "ななせん",
-    8: "はっせん",
-    9: "きゅうせん"
-  };
-
-  const t = Math.floor(num / 1000);
-  const h = Math.floor((num % 1000) / 100);
-  const te = Math.floor((num % 100) / 10);
-  const o = num % 10;
-
-  let reading = "";
+  const ones = ["", "いち","に","さん","よん","ご","ろく","なな","はち","きゅう"];
+  
+  let s = "";
 
   // Thousands
-  if (t > 0) reading += thousandsMap[t] + " ";
-
-  // Hundreds
-  if (h > 0) reading += hundredsMap[h] + " ";
-
-  // Tens
-  if (te > 0) {
-    if (te === 1) reading += "じゅう ";
-    else reading += ones[te] + "じゅう ";
+  const t = Math.floor(num / 1000);
+  if (t > 0) {
+    if (t === 1) s += "せん";
+    else if (t === 3) s += "さんぜん";
+    else if (t === 8) s += "はっせん";
+    else s += ones[t] + "せん";
   }
 
-  // Ones (special 4 → よ before 年)
-  if (o > 0) reading += (o === 4 ? "よ" : ones[o]) + " ";
+  // Hundreds
+  const h = Math.floor((num % 1000) / 100);
+  if (h > 0) {
+    if (h === 1) s += "ひゃく";
+    else if (h === 3) s += "さんびゃく";
+    else if (h === 6) s += "ろっぴゃく";
+    else if (h === 8) s += "はっぴゃく";
+    else s += ones[h] + "ひゃく";
+  }
 
-  reading += "ねん";
-  return reading.trim();
+  // Tens
+  const te = Math.floor((num % 100) / 10);
+  if (te > 0) {
+    if (te === 1) s += "じゅう";
+    else s += ones[te] + "じゅう";
+  }
+
+  // Ones, special rule: 4 → よ before 年
+  const o = num % 10;
+  if (o > 0) s += (o === 4 ? "よ" : ones[o]);
+
+  return s + "ねん";
 }
+
 
 /* =============================
    Speech
