@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Kanji Year Quiz</title>
   <script src="https://cdn.tailwindcss.com"></script>
-
   <style>
-    body { background-color: #0f172a; color: white; }
     .karuta-card {
       font-family: "Noto Serif JP", serif;
       cursor: pointer;
@@ -18,69 +16,33 @@
     .incorrect { background-color: #F87171 !important; }
   </style>
 </head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-start p-4">
 
-<body class="p-4">
-
-<!-- ===============================
-     MAIN MENU
-     =============================== -->
-<div id="mainMenu" class="text-center mt-10">
-  <h1 class="text-3xl font-bold mb-6">🈶 Kanji Year Matching Game</h1>
-
-  <button id="enableAudioBtn"
-    class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg mb-6">
-    Enable Audio 🔊
-  </button>
-
-  <div class="space-y-4">
-    <button id="beginnerBtn"
-      class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg w-64">
-      Beginner (20–100)
-    </button>
-
-    <button id="advancedBtn"
-      class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg w-64">
-      Advanced (101–2000)
-    </button>
-  </div>
-</div>
-
-<!-- ===============================
-     GAME AREA
-     =============================== -->
-<div id="gameArea" class="hidden max-w-2xl mx-auto mt-8">
-
-  <div class="flex justify-between mb-4 text-xl">
-    <div>Score: <span id="score">0</span></div>
-    <div>Q: <span id="qIndex">0</span> / 15</div>
+  <!-- Main Menu -->
+  <div id="mainMenu" class="flex flex-col items-center space-y-4">
+    <h1 class="text-4xl font-bold">Kanji Year Quiz</h1>
+    <button id="enableAudioBtn" class="px-6 py-2 bg-blue-600 rounded hover:bg-blue-500">Enable Audio</button>
+    <div class="flex space-x-4">
+      <button id="beginnerBtn" class="px-6 py-2 bg-green-600 rounded hover:bg-green-500">Beginner</button>
+      <button id="advancedBtn" class="px-6 py-2 bg-red-600 rounded hover:bg-red-500">Advanced</button>
+    </div>
   </div>
 
-  <div class="text-center mb-6">
-    <h2 class="text-2xl">Find the Kanji for:</h2>
-    <div id="targetNumber" class="text-4xl font-bold mt-2">---年</div>
+  <!-- Game Area -->
+  <div id="gameArea" class="hidden w-full max-w-xl flex flex-col items-center space-y-4 mt-6">
+    <div class="text-xl">Question <span id="qIndex">0</span> / 15</div>
+    <div class="text-3xl font-bold" id="targetNumber">---年</div>
+    <div id="choices" class="grid grid-cols-2 gap-4 w-full"></div>
+    <div id="feedback" class="text-xl h-8"></div>
+    <div class="flex space-x-4 mt-4">
+      <button id="restartBtn" class="px-6 py-2 bg-yellow-600 rounded hover:bg-yellow-500 hidden">Restart</button>
+      <button id="backBtn" class="px-6 py-2 bg-gray-600 rounded hover:bg-gray-500 hidden">Back to Main</button>
+    </div>
+    <div class="mt-4">Score: <span id="score">0</span></div>
   </div>
 
-  <div id="choices" class="grid grid-cols-2 gap-4 mb-6"></div>
-
-  <div id="feedback" class="text-center text-2xl h-10"></div>
-
-  <div class="text-center mt-6 space-x-4">
-    <button id="restartBtn"
-      class="hidden bg-yellow-600 hover:bg-yellow-700 px-5 py-3 rounded-lg">
-      Restart
-    </button>
-
-    <button id="backBtn"
-      class="hidden bg-gray-600 hover:bg-gray-700 px-5 py-3 rounded-lg">
-      Back to Main Menu
-    </button>
-  </div>
-</div>
-
-<!-- ===============================
-     SCRIPT
-     =============================== -->
-<script>
+  <!-- Script -->
+  <script>
 /* =============================
    Game configuration & state
    ============================= */
@@ -93,7 +55,7 @@ let audioEnabled = false;
 let waitingAnswer = false;
 
 /* =============================
-   DOM
+   DOM elements
    ============================= */
 const mainMenu = document.getElementById('mainMenu');
 const gameArea = document.getElementById('gameArea');
@@ -113,77 +75,65 @@ const backBtn = document.getElementById('backBtn');
    ============================= */
 function numberToKanji(num) {
   if (num <= 0 || num > 9999) return "エラー";
-
   const digits = ["","一","二","三","四","五","六","七","八","九"];
-
   let out = '';
   const thou = Math.floor(num/1000),
         hund = Math.floor((num%1000)/100),
         tens = Math.floor((num%100)/10),
         unit = num % 10;
-
   if (thou>0) out += (thou===1?'千':digits[thou]+'千');
   if (hund>0) out += (hund===1?'百':digits[hund]+'百');
   if (tens>0) out += (tens===1?'十':digits[tens]+'十');
   if (unit>0) out += digits[unit];
-
   return out + '年';
 }
 
 /* =============================
-   Correct hiragana reading
+   Correct Hiragana reading with irregulars
    ============================= */
 function numberToReading(num) {
-  // Returns a proper Japanese hiragana reading ending with "ねん"
-  // Handles irregulars: 300/600/800 etc., 3000/8000 etc., and "4" -> "よ" before 年.
-  if (!Number.isFinite(num) || num <= 0) return 'れいねん';
+  const digits = ["","いち","に","さん","よん","ご","ろく","なな","はち","きゅう"];
+  const parts = [];
 
-  const ones = ['', 'いち','に','さん','よん','ご','ろく','なな','はち','きゅう'];
-  let n = Math.floor(num);
-  let s = '';
+  const thousands = Math.floor(num / 1000);
+  const hundreds = Math.floor((num % 1000) / 100);
+  const tens = Math.floor((num % 100) / 10);
+  const ones = num % 10;
 
-  // thousands (1000-9000)
-  const thousands = Math.floor(n / 1000);
+  // Thousands
   if (thousands > 0) {
-    if (thousands === 1) s += 'せん';
-    else if (thousands === 3) s += 'さんぜん';
-    else if (thousands === 8) s += 'はっせん';
-    else s += ones[thousands] + 'せん';
-    n = n % 1000;
-  }
-
-  // hundreds (100-900)
-  const hundreds = Math.floor(n / 100);
-  if (hundreds > 0) {
-    switch (hundreds) {
-      case 1: s += 'ひゃく'; break;
-      case 2: s += 'にひゃく'; break;
-      case 3: s += 'さんびゃく'; break;
-      case 4: s += 'よんひゃく'; break;
-      case 5: s += 'ごひゃく'; break;
-      case 6: s += 'ろっぴゃく'; break;
-      case 7: s += 'ななひゃく'; break;
-      case 8: s += 'はっぴゃく'; break;
-      case 9: s += 'きゅうひゃく'; break;
+    switch(thousands){
+      case 1: parts.push("せん"); break;
+      case 3: parts.push("さんぜん"); break;
+      case 8: parts.push("はっせん"); break;
+      default: parts.push(digits[thousands] + "せん");
     }
-    n = n % 100;
   }
 
-  // tens (10-90)
-  const tens = Math.floor(n / 10);
+  // Hundreds
+  if (hundreds > 0) {
+    switch(hundreds){
+      case 1: parts.push("ひゃく"); break;
+      case 3: parts.push("さんびゃく"); break;
+      case 6: parts.push("ろっぴゃく"); break;
+      case 8: parts.push("はっぴゃく"); break;
+      default: parts.push(digits[hundreds]+"ひゃく");
+    }
+  }
+
+  // Tens
   if (tens > 0) {
-    if (tens === 1) s += 'じゅう';
-    else s += ones[tens] + 'じゅう';
-    n = n % 10;
+    if (tens === 1) parts.push("じゅう");
+    else parts.push(digits[tens]+"じゅう");
   }
 
-  // ones (1-9) — special case: 4 before 年 becomes "よ"
-  if (n > 0) {
-    if (n === 4) s += 'よ';
-    else s += ones[n];
+  // Ones (4 becomes よ before 年)
+  if (ones > 0) {
+    parts.push((ones===4)?"よ":digits[ones]);
   }
 
-  return s + 'ねん';
+  parts.push("ねん");
+  return parts.join(" ").trim();
 }
 
 /* =============================
@@ -192,18 +142,10 @@ function numberToReading(num) {
 function speakHiragana(str) {
   if (!audioEnabled) return;
   if (!("speechSynthesis" in window)) return;
-
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(str);
-// If contains any hiragana/katakana/kanji → Japanese voice, else English
-if (/[ぁ-んァ-ン一-龥]/.test(str)) {
   u.lang = 'ja-JP';
-} else {
-  u.lang = 'en-US';
-}
-
-
-  setTimeout(() => window.speechSynthesis.speak(u), 80);
+  setTimeout(()=>window.speechSynthesis.speak(u), 80);
 }
 
 /* =============================
@@ -223,38 +165,24 @@ backBtn.addEventListener('click', ()=> showMainMenu());
 
 function start(selectedLevel) {
   level = selectedLevel;
-  score = 0;
-  qIndex = 0;
-  currentNumber = 0;
-
+  score = 0; qIndex = 0; currentNumber=0;
   scoreEl.textContent = 0;
   qIndexEl.textContent = 0;
-
   mainMenu.classList.add('hidden');
   gameArea.classList.remove('hidden');
-
-  restartBtn.classList.add('hidden');
-  backBtn.classList.add('hidden');
+  restartBtn.classList.add('hidden'); backBtn.classList.add('hidden');
   feedbackEl.textContent = '';
-
   nextQuestion();
 }
 
 function nextQuestion() {
-  if (qIndex >= TOTAL_QUESTIONS) {
-    finishGame();
-    return;
-  }
-
-  const range = level === 'beginner' ? [20, 100] : [101, 2000];
-  currentNumber = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
-
-  targetNumberEl.textContent = currentNumber + "年";
-  qIndexEl.textContent = qIndex + 1;
+  if (qIndex >= TOTAL_QUESTIONS) { finishGame(); return; }
+  const range = level==='beginner'? [20,100]:[101,2000];
+  currentNumber = Math.floor(Math.random()*(range[1]-range[0]+1))+range[0];
+  targetNumberEl.textContent = currentNumber+"年";
+  qIndexEl.textContent = qIndex+1;
   renderChoices(currentNumber);
-
   speakHiragana(numberToReading(currentNumber));
-
   qIndex++;
 }
 
@@ -262,87 +190,55 @@ function nextQuestion() {
    Choices
    ============================= */
 function renderChoices(correctNum) {
-  choicesEl.innerHTML = '';
-  waitingAnswer = false;
-
+  choicesEl.innerHTML='';
+  waitingAnswer=false;
   const set = new Set();
   set.add(correctNum);
-
-  const range = level === 'beginner' ? [20, 100] : [101, 2000];
-
-  while (set.size < 4) {
-    const r = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
-    set.add(r);
-  }
-
-  const arr = Array.from(set).sort(()=> Math.random() - 0.5);
-
-  arr.forEach(n => {
+  const range = level==='beginner'? [20,100]:[101,2000];
+  while(set.size<4) set.add(Math.floor(Math.random()*(range[1]-range[0]+1))+range[0]);
+  const arr = Array.from(set).sort(()=>Math.random()-0.5);
+  arr.forEach(n=>{
     const card = document.createElement('div');
-    card.className = "karuta-card bg-gray-700 p-4 rounded-xl text-2xl text-center";
-    card.textContent = numberToKanji(n);
-    card.dataset.num = n;
-    card.addEventListener('click', ()=> onChoose(card, n));
+    card.className="karuta-card bg-gray-700 p-4 rounded-xl text-2xl text-center";
+    card.textContent=numberToKanji(n);
+    card.dataset.num=n;
+    card.addEventListener('click', ()=> onChoose(card,n));
     choicesEl.appendChild(card);
   });
 }
 
 function onChoose(card, chosenNum) {
-  if (waitingAnswer) return;
-  waitingAnswer = true;
-
-  const correct = chosenNum === currentNumber;
-
-  if (correct) {
-    score++;
-    scoreEl.textContent = score;
-    card.classList.add('correct');
-    feedbackEl.textContent = "✅ Correct!";
-  } else {
-    card.classList.add('incorrect');
-    feedbackEl.textContent = "❌ Incorrect";
-
-    // Highlight correct answer
-    Array.from(choicesEl.children).forEach(c=>{
-      if (Number(c.dataset.num) === currentNumber) {
-        c.style.boxShadow = "0 0 0 3px rgba(16,185,129,0.45)";
-      }
-    });
+  if(waitingAnswer) return;
+  waitingAnswer=true;
+  const correct = chosenNum===currentNumber;
+  if(correct){ score++; scoreEl.textContent=score; card.classList.add('correct'); feedbackEl.textContent="✅ Correct!"; }
+  else { card.classList.add('incorrect'); feedbackEl.textContent="❌ Incorrect"; 
+    Array.from(choicesEl.children).forEach(c=>{ if(Number(c.dataset.num)===currentNumber) c.style.boxShadow="0 0 0 3px rgba(16,185,129,0.45)"; });
   }
-
   setTimeout(()=>{
-    choicesEl.innerHTML = '';
-    feedbackEl.textContent = '';
+    choicesEl.innerHTML=''; feedbackEl.textContent=''; waitingAnswer=false;
     nextQuestion();
-  }, 700);
+  },700);
 }
 
 /* =============================
    End of game
    ============================= */
-function finishGame() {
-  speakHiragana(`Finished. Your score is ${score}.`);
-  restartBtn.classList.remove('hidden');
-  backBtn.classList.remove('hidden');
-
-  if (audioEnabled) {
-    speakHiragana(`Your score is ${score}.`);
+function finishGame(){
+  feedbackEl.textContent=`🎉 Finished! Score: ${score} / ${TOTAL_QUESTIONS}`;
+  restartBtn.classList.remove('hidden'); backBtn.classList.remove('hidden');
+  if(audioEnabled){
+    const reading = `Your score is ${score}.`;
+    speakHiragana(reading);
   }
 }
 
-function showMainMenu() {
-  gameArea.classList.add('hidden');
-  mainMenu.classList.remove('hidden');
-
-  targetNumberEl.textContent = "---年";
-  choicesEl.innerHTML = '';
-  feedbackEl.textContent = '';
-  restartBtn.classList.add('hidden');
-  backBtn.classList.add('hidden');
-  scoreEl.textContent = "0";
-  qIndexEl.textContent = "0";
+function showMainMenu(){
+  gameArea.classList.add('hidden'); mainMenu.classList.remove('hidden');
+  targetNumberEl.textContent="---年"; choicesEl.innerHTML=''; feedbackEl.textContent='';
+  restartBtn.classList.add('hidden'); backBtn.classList.add('hidden');
+  scoreEl.textContent="0"; qIndexEl.textContent="0";
 }
-</script>
-
+  </script>
 </body>
 </html>
