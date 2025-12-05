@@ -92,48 +92,61 @@ function numberToKanji(num) {
    Correct Hiragana reading with irregulars
    ============================= */
 function numberToReading(num) {
-  const digits = ["","いち","に","さん","よん","ご","ろく","なな","はち","きゅう"];
-  const parts = [];
+  if (num <= 0 || num > 9999) return "れいねん";
 
-  const thousands = Math.floor(num / 1000);
-  const hundreds = Math.floor((num % 1000) / 100);
-  const tens = Math.floor((num % 100) / 10);
-  const ones = num % 10;
+  const ones = ["", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう"];
+  const tens = ["", "じゅう", "にじゅう", "さんじゅう", "よんじゅう", "ごじゅう", "ろくじゅう", "ななじゅう", "はちじゅう", "きゅうじゅう"];
+
+  // Hundreds special readings
+  const hundredsMap = {
+    1: "ひゃく",
+    2: "にひゃく",
+    3: "さんびゃく",
+    4: "よんひゃく",
+    5: "ごひゃく",
+    6: "ろっぴゃく",
+    7: "ななひゃく",
+    8: "はっぴゃく",
+    9: "きゅうひゃく"
+  };
+
+  // Thousands special readings
+  const thousandsMap = {
+    1: "せん",
+    2: "にせん",
+    3: "さんぜん",
+    4: "よんせん",
+    5: "ごせん",
+    6: "ろくせん",
+    7: "ななせん",
+    8: "はっせん",
+    9: "きゅうせん"
+  };
+
+  const t = Math.floor(num / 1000);
+  const h = Math.floor((num % 1000) / 100);
+  const te = Math.floor((num % 100) / 10);
+  const o = num % 10;
+
+  let reading = "";
 
   // Thousands
-  if (thousands > 0) {
-    switch(thousands){
-      case 1: parts.push("せん"); break;
-      case 3: parts.push("さんぜん"); break;
-      case 8: parts.push("はっせん"); break;
-      default: parts.push(digits[thousands] + "せん");
-    }
-  }
+  if (t > 0) reading += thousandsMap[t] + " ";
 
   // Hundreds
-  if (hundreds > 0) {
-    switch(hundreds){
-      case 1: parts.push("ひゃく"); break;
-      case 3: parts.push("さんびゃく"); break;
-      case 6: parts.push("ろっぴゃく"); break;
-      case 8: parts.push("はっぴゃく"); break;
-      default: parts.push(digits[hundreds]+"ひゃく");
-    }
-  }
+  if (h > 0) reading += hundredsMap[h] + " ";
 
   // Tens
-  if (tens > 0) {
-    if (tens === 1) parts.push("じゅう");
-    else parts.push(digits[tens]+"じゅう");
+  if (te > 0) {
+    if (te === 1) reading += "じゅう ";
+    else reading += ones[te] + "じゅう ";
   }
 
-  // Ones (4 becomes よ before 年)
-  if (ones > 0) {
-    parts.push((ones===4)?"よ":digits[ones]);
-  }
+  // Ones (special 4 → よ before 年)
+  if (o > 0) reading += (o === 4 ? "よ" : ones[o]) + " ";
 
-  parts.push("ねん");
-  return parts.join(" ").trim();
+  reading += "ねん";
+  return reading.trim();
 }
 
 /* =============================
