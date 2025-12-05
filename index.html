@@ -5,67 +5,87 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Kanji Year Quiz</title>
   <script src="https://cdn.tailwindcss.com"></script>
+
   <style>
-    .karuta-card { font-family: "Noto Serif JP", serif; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+    body { background-color: #0f172a; color: white; }
+    .karuta-card {
+      font-family: "Noto Serif JP", serif;
+      cursor: pointer;
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
     .karuta-card:hover { transform: scale(1.03); }
     .correct { background-color: #10B981 !important; }
     .incorrect { background-color: #F87171 !important; }
   </style>
 </head>
-<body class="min-h-screen bg-gray-900 text-white flex items-center justify-center p-6">
 
-  <div class="w-full max-w-3xl">
+<body class="p-4">
 
-    <!-- Header -->
-    <header class="text-center mb-6">
-      <h1 class="text-4xl font-extrabold text-red-500">Kanji 年 Quiz</h1>
-      <p class="text-gray-300 mt-1">Choose the correct Kanji numeral for the year. 15 questions per level.</p>
-    </header>
+<!-- ===============================
+     MAIN MENU
+     =============================== -->
+<div id="mainMenu" class="text-center mt-10">
+  <h1 class="text-3xl font-bold mb-6">🈶 Kanji Year Matching Game</h1>
 
-    <!-- MAIN MENU -->
-    <section id="mainMenu" class="bg-gray-800 p-6 rounded-xl shadow-lg">
-      <div class="flex flex-col items-center gap-4">
-        <button id="enableAudioBtn" class="px-5 py-2 bg-yellow-400 text-black rounded-md hover:bg-yellow-500">Enable Audio 🔊</button>
+  <button id="enableAudioBtn"
+    class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg mb-6">
+    Enable Audio 🔊
+  </button>
 
-        <div class="flex gap-4">
-          <button id="beginnerBtn" class="px-5 py-2 bg-red-600 rounded-md hover:bg-red-700">Beginner (20–100)</button>
-          <button id="advancedBtn" class="px-5 py-2 bg-blue-600 rounded-md hover:bg-blue-700">Advanced (101–2000)</button>
-        </div>
+  <div class="space-y-4">
+    <button id="beginnerBtn"
+      class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg w-64">
+      Beginner (20–100)
+    </button>
 
-        <p class="text-sm text-gray-400 mt-2">Tip: Click "Enable Audio" once to allow pronunciation on some browsers.</p>
-      </div>
-    </section>
+    <button id="advancedBtn"
+      class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg w-64">
+      Advanced (101–2000)
+    </button>
+  </div>
+</div>
 
-    <!-- GAME AREA -->
-    <section id="gameArea" class="hidden mt-6 bg-gray-800 p-6 rounded-xl shadow-lg">
-      <div class="flex items-center justify-between mb-4">
-        <div>Score: <span id="score" class="font-mono text-lg">0</span> / <span class="font-mono">15</span></div>
-        <div>Question: <span id="qIndex" class="font-mono text-lg">0</span> / 15</div>
-      </div>
+<!-- ===============================
+     GAME AREA
+     =============================== -->
+<div id="gameArea" class="hidden max-w-2xl mx-auto mt-8">
 
-      <div class="text-center mb-6">
-        <p class="text-gray-300 mb-2">Find the Kanji for:</p>
-        <div id="targetNumber" class="text-6xl font-extrabold text-yellow-400">---年</div>
-      </div>
-
-      <div id="choices" class="grid grid-cols-2 gap-4 max-w-2xl mx-auto"></div>
-
-      <div id="feedback" class="h-10 text-center text-lg mt-6"></div>
-
-      <div class="flex justify-center gap-4 mt-6">
-        <button id="restartBtn" class="px-4 py-2 bg-green-600 rounded-md hover:bg-green-700 hidden">Restart</button>
-        <button id="backBtn" class="px-4 py-2 bg-gray-600 rounded-md hover:bg-gray-500 hidden">Back to Main Menu</button>
-      </div>
-    </section>
-
+  <div class="flex justify-between mb-4 text-xl">
+    <div>Score: <span id="score">0</span></div>
+    <div>Q: <span id="qIndex">0</span> / 15</div>
   </div>
 
+  <div class="text-center mb-6">
+    <h2 class="text-2xl">Find the Kanji for:</h2>
+    <div id="targetNumber" class="text-4xl font-bold mt-2">---年</div>
+  </div>
+
+  <div id="choices" class="grid grid-cols-2 gap-4 mb-6"></div>
+
+  <div id="feedback" class="text-center text-2xl h-10"></div>
+
+  <div class="text-center mt-6 space-x-4">
+    <button id="restartBtn"
+      class="hidden bg-yellow-600 hover:bg-yellow-700 px-5 py-3 rounded-lg">
+      Restart
+    </button>
+
+    <button id="backBtn"
+      class="hidden bg-gray-600 hover:bg-gray-700 px-5 py-3 rounded-lg">
+      Back to Main Menu
+    </button>
+  </div>
+</div>
+
+<!-- ===============================
+     SCRIPT
+     =============================== -->
 <script>
 /* =============================
    Game configuration & state
    ============================= */
 const TOTAL_QUESTIONS = 15;
-let level = null; // 'beginner'|'advanced'
+let level = null;
 let score = 0;
 let qIndex = 0;
 let currentNumber = 0;
@@ -73,7 +93,7 @@ let audioEnabled = false;
 let waitingAnswer = false;
 
 /* =============================
-   DOM elements
+   DOM
    ============================= */
 const mainMenu = document.getElementById('mainMenu');
 const gameArea = document.getElementById('gameArea');
@@ -89,34 +109,37 @@ const restartBtn = document.getElementById('restartBtn');
 const backBtn = document.getElementById('backBtn');
 
 /* =============================
-   Utility: Kanji conversion
-   (returns kanji string like "二千二十三")
+   Kanji conversion
    ============================= */
 function numberToKanji(num) {
   if (num <= 0 || num > 9999) return "エラー";
+
   const digits = ["","一","二","三","四","五","六","七","八","九"];
+
   let out = '';
-  const thou = Math.floor(num/1000), hund = Math.floor((num%1000)/100);
-  const tens = Math.floor((num%100)/10), unit = num%10;
-  if (thou>0) out += (thou===1 ? '千' : digits[thou]+'千');
-  if (hund>0) out += (hund===1 ? '百' : digits[hund]+'百');
-  if (tens>0) out += (tens===1 ? '十' : digits[tens]+'十');
+  const thou = Math.floor(num/1000),
+        hund = Math.floor((num%1000)/100),
+        tens = Math.floor((num%100)/10),
+        unit = num % 10;
+
+  if (thou>0) out += (thou===1?'千':digits[thou]+'千');
+  if (hund>0) out += (hund===1?'百':digits[hund]+'百');
+  if (tens>0) out += (tens===1?'十':digits[tens]+'十');
   if (unit>0) out += digits[unit];
+
   return out + '年';
 }
 
 /* =============================
-   Correct Hiragana reading
-   (returns hiragana + ねん), handles irregulars
-   e.g. 1708 -> "せんななひゃくはちねん"
+   Correct hiragana reading
    ============================= */
 function numberToHiragana(num) {
   if (num <= 0) return 'れいねん';
-  const ones = ['', 'いち','に','さん','よん','ご','ろく','なな','はち','きゅう'];
 
+  const ones = ['', 'いち','に','さん','よん','ご','ろく','なな','はち','きゅう'];
   let s = '';
 
-  // thousands (1000-9000)
+  // thousands
   const thousands = Math.floor(num / 1000);
   if (thousands > 0) {
     if (thousands === 1) s += 'せん';
@@ -125,7 +148,7 @@ function numberToHiragana(num) {
     else s += ones[thousands] + 'せん';
   }
 
-  // hundreds (100-900)
+  // hundreds
   const hundreds = Math.floor((num % 1000) / 100);
   if (hundreds > 0) {
     switch (hundreds) {
@@ -141,62 +164,56 @@ function numberToHiragana(num) {
     }
   }
 
-  // tens (10-90)
+  // tens
   const tens = Math.floor((num % 100) / 10);
   if (tens > 0) {
     if (tens === 1) s += 'じゅう';
     else s += ones[tens] + 'じゅう';
   }
 
-  // ones (1-9)
+  // ones
   const unit = num % 10;
-  if (unit > 0) {
-    s += ones[unit];
-  }
+  if (unit > 0) s += ones[unit];
 
   return s + 'ねん';
 }
 
 /* =============================
-   Speech (speak hiragana so browser pronounces correctly)
+   Speech
    ============================= */
 function speakHiragana(str) {
   if (!audioEnabled) return;
-  if (!('speechSynthesis' in window)) return;
-  // Cancel existing speech for clarity
+  if (!("speechSynthesis" in window)) return;
+
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(str);
   u.lang = 'ja-JP';
-  // slight delay helps reliability in some browsers
-  setTimeout(()=> window.speechSynthesis.speak(u), 80);
+
+  setTimeout(() => window.speechSynthesis.speak(u), 80);
 }
 
 /* =============================
-   Game flow
+   Game Flow
    ============================= */
 enableAudioBtn.addEventListener('click', () => {
   audioEnabled = true;
-  enableAudioBtn.textContent = 'Audio Enabled ✅';
+  enableAudioBtn.textContent = "Audio Enabled ✅";
   enableAudioBtn.disabled = true;
-  // warm-up voices load
-  if (window.speechSynthesis && window.speechSynthesis.getVoices) {
-    window.speechSynthesis.getVoices();
-  }
+  if (window.speechSynthesis.getVoices) window.speechSynthesis.getVoices();
 });
 
-beginnerBtn.addEventListener('click', () => start('beginner'));
-advancedBtn.addEventListener('click', () => start('advanced'));
-restartBtn.addEventListener('click', () => start(level));
-backBtn.addEventListener('click', () => showMainMenu());
+beginnerBtn.addEventListener('click', ()=> start('beginner'));
+advancedBtn.addEventListener('click', ()=> start('advanced'));
+restartBtn.addEventListener('click', ()=> start(level));
+backBtn.addEventListener('click', ()=> showMainMenu());
 
 function start(selectedLevel) {
   level = selectedLevel;
   score = 0;
   qIndex = 0;
   currentNumber = 0;
-  waitingAnswer = false;
 
-  scoreEl.textContent = score;
+  scoreEl.textContent = 0;
   qIndexEl.textContent = 0;
 
   mainMenu.classList.add('hidden');
@@ -216,116 +233,102 @@ function nextQuestion() {
   }
 
   const range = level === 'beginner' ? [20, 100] : [101, 2000];
-  // generate random number within range
   currentNumber = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
 
-  // update UI
-  targetNumberEl.textContent = currentNumber + '年';
+  targetNumberEl.textContent = currentNumber + "年";
   qIndexEl.textContent = qIndex + 1;
   renderChoices(currentNumber);
 
-  // speak with correct hiragana
-  const reading = numberToHiragana(currentNumber);
-  speakHiragana(reading);
+  speakHiragana(numberToHiragana(currentNumber));
 
   qIndex++;
 }
 
 /* =============================
-   Render 4 choices (kanji), unique
+   Choices
    ============================= */
 function renderChoices(correctNum) {
-  waitingAnswer = false;
   choicesEl.innerHTML = '';
+  waitingAnswer = false;
+
   const set = new Set();
   set.add(correctNum);
 
   const range = level === 'beginner' ? [20, 100] : [101, 2000];
 
-  // ensure 3 distinct incorrect numbers
   while (set.size < 4) {
-    const n = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
-    set.add(n);
+    const r = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
+    set.add(r);
   }
 
-  const arr = Array.from(set).sort(() => Math.random() - 0.5); // shuffle
+  const arr = Array.from(set).sort(()=> Math.random() - 0.5);
 
   arr.forEach(n => {
     const card = document.createElement('div');
-    card.className = 'karuta-card bg-gray-700 p-4 rounded-lg text-2xl text-center font-bold';
+    card.className = "karuta-card bg-gray-700 p-4 rounded-xl text-2xl text-center";
     card.textContent = numberToKanji(n);
     card.dataset.num = n;
-    card.addEventListener('click', () => onChoose(card, n));
+    card.addEventListener('click', ()=> onChoose(card, n));
     choicesEl.appendChild(card);
   });
 }
 
-/* =============================
-   Answer handling — continue even if wrong
-   ============================= */
-function onChoose(cardEl, chosenNum) {
-  if (waitingAnswer) return; // avoid double clicks
+function onChoose(card, chosenNum) {
+  if (waitingAnswer) return;
   waitingAnswer = true;
 
-  const isCorrect = (chosenNum === currentNumber);
+  const correct = chosenNum === currentNumber;
 
-  if (isCorrect) {
-    cardEl.classList.add('correct');
-    feedbackEl.textContent = '✅ Correct!';
+  if (correct) {
     score++;
     scoreEl.textContent = score;
-    // speak positive feedback optionally
-    // speakHiragana('せいかい'); // uncomment if wanted
+    card.classList.add('correct');
+    feedbackEl.textContent = "✅ Correct!";
   } else {
-    cardEl.classList.add('incorrect');
-    feedbackEl.textContent = '❌ Incorrect';
-    // show the correct card border so user can learn
-    Array.from(choicesEl.children).forEach(c => {
+    card.classList.add('incorrect');
+    feedbackEl.textContent = "❌ Incorrect";
+
+    // Highlight correct answer
+    Array.from(choicesEl.children).forEach(c=>{
       if (Number(c.dataset.num) === currentNumber) {
-        c.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.45)';
+        c.style.boxShadow = "0 0 0 3px rgba(16,185,129,0.45)";
       }
     });
   }
 
-  // brief pause then go to next question (even if incorrect)
-  setTimeout(() => {
-    // clear classes/styles
-    Array.from(choicesEl.children).forEach(c => { c.classList.remove('correct','incorrect'); c.style.boxShadow=''; });
+  setTimeout(()=>{
+    choicesEl.innerHTML = '';
     feedbackEl.textContent = '';
-    waitingAnswer = false;
     nextQuestion();
   }, 700);
 }
 
 /* =============================
-   End of game UI
+   End of game
    ============================= */
 function finishGame() {
   feedbackEl.textContent = `🎉 Finished! Score: ${score} / ${TOTAL_QUESTIONS}`;
   restartBtn.classList.remove('hidden');
   backBtn.classList.remove('hidden');
-  // optionally speak final score
+
   if (audioEnabled) {
-    const reading = `おわり。せいせきは ${score} てん です。`;
-    speakHiragana(reading); // speaking hiragana; it's fine to mix Japanese text
+    speakHiragana(`おわり。せいせきは ${score} てん です。`);
   }
 }
 
-/* =============================
-   Show main menu
-   ============================= */
 function showMainMenu() {
   gameArea.classList.add('hidden');
   mainMenu.classList.remove('hidden');
-  // reset UI
-  targetNumberEl.textContent = '---年';
+
+  targetNumberEl.textContent = "---年";
   choicesEl.innerHTML = '';
   feedbackEl.textContent = '';
   restartBtn.classList.add('hidden');
   backBtn.classList.add('hidden');
-  scoreEl.textContent = '0';
-  qIndexEl.textContent = '0';
+  scoreEl.textContent = "0";
+  qIndexEl.textContent = "0";
 }
 </script>
+
 </body>
 </html>
